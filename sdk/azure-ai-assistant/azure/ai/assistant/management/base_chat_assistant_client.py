@@ -35,6 +35,7 @@ class BaseChatAssistantClient(BaseAssistantClient):
         super().__init__(config_json, callbacks, async_mode, **client_args)
         self._tools = None
         self._messages = []
+        self._token_count = 0
 
     def _init_chat_assistant_client(
             self, 

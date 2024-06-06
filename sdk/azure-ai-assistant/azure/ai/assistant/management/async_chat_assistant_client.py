@@ -15,6 +15,7 @@ from typing import Optional, Union
 from datetime import datetime
 import json, uuid, yaml
 import asyncio
+import tiktoken
 
 
 class AsyncChatAssistantClient(BaseChatAssistantClient):
@@ -195,6 +196,7 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
 
         try:
             logger.info(f"Process messages for chat assistant")
+            enc = tiktoken.encoding_for_model(self._assistant_config.model)
 
             if additional_instructions:
                 self._messages.append({"role": "system", "content": additional_instructions})
@@ -209,6 +211,9 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
                         self._messages.append({"role": "assistant", "content": message.text_message.content})
             elif user_request:
                 self._messages.append({"role": "user", "content": user_request})
+                self._token_count += len(enc.encode(user_request))
+            
+            await self._update_token_count(enc)
 
             # call the start_run callback
             run_start_time = str(datetime.now())
@@ -377,3 +382,21 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
                 metadata={"chat_assistant": self._name}
             )
             logger.info("Messages updated in conversation.")
+
+    async def _update_token_count(self, encoder : tiktoken.Encoding):
+        '''
+        Clear older messages from the message thread to keep the overall token count below the limit, preserves conversation context.
+
+        '''
+
+        if self._token_count > self._assistant_config.model_conv_token_limit:
+            while self._token_count > self._assistant_config.model_conv_token_limit:
+                oldest_message = self._messages[0]
+                if oldest_message['role'] == 'user' or oldest_message['role'] == 'assistant':
+                    self._token_count -= len(encoder.encode(oldest_message['content']))
+                    logger.info(f"{self._assistant_config.model_conv_token_limit} token count exceeded, removing oldest message from messages: {oldest_message['content']}")
+                    self._messages.remove(oldest_message)
+
+        
+
+        

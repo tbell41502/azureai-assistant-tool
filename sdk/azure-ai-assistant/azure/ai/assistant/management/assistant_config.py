@@ -7,6 +7,13 @@ from azure.ai.assistant.management.logger_module import logger
 import json, os
 from typing import Optional, Union
 
+class ModelMaxTokens:
+    def __init__(self):
+        self.model_token_limits = {
+            "gpt-4o": 128000,
+            "gpt-3": 2048,
+            "gpt-4": 8192,
+        }
 
 class TextCompletionConfig:
     """
@@ -854,6 +861,15 @@ class AssistantConfig:
         :rtype: str
         """
         return self._model
+    
+    @property
+    def model_conv_token_limit(self) -> str:
+        """Get the model.
+        
+        :return: The model.
+        :rtype: str
+        """
+        return ModelMaxTokens().model_token_limits[self._model]
     
     @model.setter
     def model(self, value) -> None:
