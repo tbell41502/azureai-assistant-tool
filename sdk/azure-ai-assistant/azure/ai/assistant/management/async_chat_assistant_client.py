@@ -204,16 +204,15 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
             if thread_name:
                 max_text_messages = self._assistant_config.text_completion_config.max_text_messages if self._assistant_config.text_completion_config else None
                 conversation = await self._conversation_thread_client.retrieve_conversation(thread_name=thread_name, max_text_messages=max_text_messages)
+                self._token_count = 0
                 for message in reversed(conversation.messages):
+                    self._token_count += len(enc.encode(message.text_message.content))
                     if message.role == "user":
                         self._messages.append({"role": "user", "content": message.text_message.content})
                     if message.role == "assistant":
                         self._messages.append({"role": "assistant", "content": message.text_message.content})
             elif user_request:
                 self._messages.append({"role": "user", "content": user_request})
-                self._token_count += len(enc.encode(user_request))
-            
-            await self._update_token_count(enc)
 
             # call the start_run callback
             run_start_time = str(datetime.now())
@@ -229,6 +228,7 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
 
             response = None
             while continue_processing:
+                await self._update_tokens(enc)
 
                 if self._cancel_run_requested.is_set():
                     logger.info("User input processing cancellation requested.")
@@ -353,6 +353,11 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
             })
     
         for tool_call in tool_calls:
+            if tool_call['function']['name'] == 'query_database':
+                arguments = json.loads(tool_call['function']['arguments'])
+                arguments['tokens_remaining'] = self.assistant_config.model_conv_token_limit - self._token_count
+                tool_call['function']['arguments'] = json.dumps(arguments)
+
             function_response = await asyncio.to_thread(
                 self._handle_function_call, 
                 tool_call['function']['name'], 
@@ -383,20 +388,15 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
             )
             logger.info("Messages updated in conversation.")
 
-    async def _update_token_count(self, encoder : tiktoken.Encoding):
-        '''
-        Clear older messages from the message thread to keep the overall token count below the limit, preserves conversation context.
-
-        '''
-
-        if self._token_count > self._assistant_config.model_conv_token_limit:
-            while self._token_count > self._assistant_config.model_conv_token_limit:
-                oldest_message = self._messages[0]
-                if oldest_message['role'] == 'user' or oldest_message['role'] == 'assistant':
-                    self._token_count -= len(encoder.encode(oldest_message['content']))
-                    logger.info(f"{self._assistant_config.model_conv_token_limit} token count exceeded, removing oldest message from messages: {oldest_message['content']}")
-                    self._messages.remove(oldest_message)
-
+    async def _update_tokens(self, encoder : tiktoken.Encoding) -> None:
+        # Step 1: Convert each message to a JSON string
+        json_messages = [json.dumps(message) for message in self._messages]
         
-
+        # Step 2: Concatenate these JSON strings into one single string
+        combined_message_string = " ".join(json_messages)
         
+        # Step 3: Tokenize the resulting string
+        message_tokens = encoder.encode(combined_message_string)
+        
+        # Step 4: Update the token count
+        self._token_count = len(message_tokens)
