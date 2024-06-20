@@ -287,6 +287,28 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
             logger.error(f"Error occurred during processing run: {e}")
             raise EngineError(f"Error occurred during processing run: {e}")
 
+    async def process_feedback_from_user(
+            self, 
+            thread_name: Optional[str] = None,
+            user_feedback: Optional[str] = None,
+            timeout: Optional[float] = None,
+    ) -> bool:
+        """
+        Process feedback from the user into the conversation thread.
+        """
+        
+        if thread_name:
+            await self._conversation_thread_client.create_conversation_thread_message(
+                user_feedback,
+                thread_name,
+                role="user",
+                timeout=timeout,
+                metadata={"chat_assistant": self._name}
+            )
+            return True
+        return False
+        
+
     async def _handle_non_streaming_response(self, response, thread_name, run_id):
         response_message = response.choices[0].message
         self._messages.append(response_message)

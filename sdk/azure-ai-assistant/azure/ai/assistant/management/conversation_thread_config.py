@@ -207,6 +207,15 @@ class ConversationThreadConfig:
         self._threads = ai_client_type_data.get('threads', [])
 
         return self._threads
+    
+    def get_all_active_threads(self) -> list:
+        """
+        Get a list of all threads for the specific ai_client_type.
+        
+        :return: A list of all threads.
+        :rtype: list
+        """
+        return self._threads
 
     def add_attachments_to_thread(self, thread_id, attachments) -> None:
         """
@@ -324,7 +333,6 @@ class ConversationThreadConfig:
         os.makedirs(os.path.dirname(self._config_file), exist_ok=True)
         
         # Read the existing configuration
-        logger.info(f"Saving conversation thread configuration to {self._config_file}")
         try:
             with open(self._config_file, 'r') as f:
                 existing_config = json.load(f)

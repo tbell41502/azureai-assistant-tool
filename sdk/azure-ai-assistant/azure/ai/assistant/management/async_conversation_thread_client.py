@@ -66,7 +66,7 @@ class AsyncConversationThreadClient:
             with cls._lock:
                 if ai_client_type not in cls._instances:
                     instance = cls.__new__(cls)
-                    instance.__init_private(ai_client_type, config_folder, **client_args)
+                    instance.__init_private(ai_client_type, config_folder=config_folder, **client_args)
                     cls._instances[ai_client_type] = instance
         return cls._instances[ai_client_type]
 
@@ -147,6 +147,30 @@ class AsyncConversationThreadClient:
         self._thread_config.update_thread_name(thread_id, new_thread_name)
         updated_thread_name = self._thread_config.get_thread_name_by_id(thread_id)
         return updated_thread_name
+    
+    def add_conversation_thread(
+            self,
+            thread_name : str,
+            thread_id : str
+    ) -> str:
+
+        """
+        Adds a conversation thread.
+
+        :param thread_name: The name of the thread to add.
+        :type thread_name: str
+        :param thread_id: The ID of the thread to add.
+        :type thread_id: str
+
+        :return: True if the thread was added, False otherwise.
+        :rtype: bool
+        """
+        try:
+            self._thread_config.add_thread(thread_id, thread_name)
+            return self._thread_config.get_thread_name_by_id(thread_id)
+        except Exception as e:
+            logger.error(f"Failed to retrieve thread messages for thread name {thread_name}: {e}")
+            return None
 
     async def _get_conversation_thread_messages(
             self, 
@@ -337,6 +361,20 @@ class AsyncConversationThreadClient:
         except Exception as e:
             logger.error(f"Failed to retrieve threads: {e}")
             raise EngineError(f"Failed to retrieve threads: {e}")
+        
+    def get_active_conversation_threads(self) -> list:
+        """
+        Retrieves all current conversation threads.
+
+        :return: The conversation threads.
+        :rtype: list
+        """
+        try:
+            threads = self._thread_config.get_all_active_threads()
+            return threads
+        except Exception as e:
+            logger.error(f"Failed to retrieve threads: {e}")
+            raise EngineError(f"Failed to retrieve threads: {e}")
 
     def get_config(self) -> dict:
         """
@@ -363,3 +401,9 @@ class AsyncConversationThreadClient:
         Closes the conversation thread client.
         """
         await self._ai_client.close()
+    
+    async def get_thread_id(self, thread_name : str) -> str:
+        """
+        Retrieves the thread ID from the given thread name.
+        """
+        return self._thread_config.get_thread_id_by_name(thread_name)
