@@ -148,7 +148,7 @@ class AsyncConversationThreadClient:
         updated_thread_name = self._thread_config.get_thread_name_by_id(thread_id)
         return updated_thread_name
     
-    def add_conversation_thread(
+    async def add_conversation_thread(
             self,
             thread_name : str,
             thread_id : str
@@ -166,11 +166,33 @@ class AsyncConversationThreadClient:
         :rtype: bool
         """
         try:
-            self._thread_config.add_thread(thread_id, thread_name)
-            return self._thread_config.get_thread_name_by_id(thread_id)
+            if await self.thread_exists(thread_id):
+                self._thread_config.add_thread(thread_id, thread_name)
+                return self._thread_config.get_thread_name_by_id(thread_id)
         except Exception as e:
             logger.error(f"Failed to retrieve thread messages for thread name {thread_name}: {e}")
             return None
+
+    async def thread_exists(
+            self,
+            thread_id : str
+    ) -> bool:
+        """
+        Checks if a conversation thread exists.
+
+        :param thread_name: The name of the thread to check.
+        :type thread_name: str
+        :param thread_id: The ID of the thread to check.
+        :type thread_id: str
+
+        :return: True if the thread exists, False otherwise.
+        :rtype: bool
+        """
+        try:
+            await self._ai_client.beta.threads.retrieve(thread_id=thread_id)
+            return True
+        except Exception as e:
+            return False
 
     async def _get_conversation_thread_messages(
             self, 
@@ -375,6 +397,13 @@ class AsyncConversationThreadClient:
         except Exception as e:
             logger.error(f"Failed to retrieve threads: {e}")
             raise EngineError(f"Failed to retrieve threads: {e}")
+    
+    def get_thread_name_by_id(self, thread_id : str) -> str:
+        try:
+            return self._thread_config.get_thread_name_by_id(thread_id)
+        except Exception as e:
+            logger.error(f"Failed to retrieve thread name by ID: {e}")
+            raise EngineError(f"Failed to retrieve thread name by ID: {e}")
 
     def get_config(self) -> dict:
         """
