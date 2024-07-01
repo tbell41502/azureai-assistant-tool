@@ -436,3 +436,9 @@ class AsyncConversationThreadClient:
         Retrieves the thread ID from the given thread name.
         """
         return self._thread_config.get_thread_id_by_name(thread_name)
+    
+    async def remove_thread_from_config(self, thread_id : str) -> None:
+        """
+        Removes the thread from the config.
+        """
+        self._thread_config.remove_thread_by_id(thread_id)
