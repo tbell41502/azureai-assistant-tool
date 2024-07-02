@@ -165,13 +165,9 @@ class AsyncConversationThreadClient:
         :return: True if the thread was added, False otherwise.
         :rtype: bool
         """
-        try:
-            if await self.thread_exists(thread_id):
-                self._thread_config.add_thread(thread_id, thread_name)
-                return self._thread_config.get_thread_name_by_id(thread_id)
-        except Exception as e:
-            logger.error(f"Failed to retrieve thread messages for thread name {thread_name}: {e}")
-            return None
+        if await self.thread_exists(thread_id):
+            self._thread_config.add_thread(thread_id, thread_name)
+            return self._thread_config.get_thread_name_by_id(thread_id)
 
     async def thread_exists(
             self,
@@ -436,9 +432,3 @@ class AsyncConversationThreadClient:
         Retrieves the thread ID from the given thread name.
         """
         return self._thread_config.get_thread_id_by_name(thread_name)
-    
-    async def remove_thread_from_config(self, thread_id : str) -> None:
-        """
-        Removes the thread from the config.
-        """
-        self._thread_config.remove_thread_by_id(thread_id)
