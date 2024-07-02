@@ -176,19 +176,32 @@ class AsyncConversationThreadClient:
         """
         Checks if a conversation thread exists.
 
-        :param thread_name: The name of the thread to check.
-        :type thread_name: str
         :param thread_id: The ID of the thread to check.
         :type thread_id: str
 
-        :return: True if the thread exists, False otherwise.
-        :rtype: bool
+        :return: True if the thread exists.
+        :raises RuntimeError: If the thread does not exist.
         """
+        
         try:
-            await self._ai_client.beta.threads.retrieve(thread_id=thread_id)
+            thread = await self._ai_client.beta.threads.retrieve(thread_id=thread_id)
+            if thread is None:
+                raise RuntimeError(f"Thread with ID {thread_id} does not exist")
             return True
         except Exception as e:
-            return False
+            raise RuntimeError(f"Thread with ID {thread_id} does not exist: {e}")
+        
+    async def remove_thread_from_config(
+            self,
+            thread_id : str
+    ) -> None:
+        """
+        Removes a conversation thread from the config (Saves space).
+
+        :param thread_id: The ID of the thread to remove.
+        :type thread_id: str
+        """
+        self._thread_config.remove_thread_by_id(thread_id)
 
     async def _get_conversation_thread_messages(
             self, 
