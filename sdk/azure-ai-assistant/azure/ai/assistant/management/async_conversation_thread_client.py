@@ -15,6 +15,7 @@ from openai.types.beta.threads import Message
 
 from typing import Union, List, Optional, Tuple
 import threading, asyncio
+import uuid
 
 
 class AsyncConversationThreadClient:
@@ -87,7 +88,7 @@ class AsyncConversationThreadClient:
             # Create a new conversation thread for the assistant
             thread = await self._ai_client.beta.threads.create(timeout=timeout)
             # Add the new thread to the thread config
-            self._thread_config.add_thread(thread.id, "New Thread")
+            self._thread_config.add_thread(thread.id, uuid.uuid4())
             thread_name = self._thread_config.get_thread_name_by_id(thread.id)
             logger.info(f"Created thread Id: {thread.id} for thread name: {thread_name}")
             return thread_name
