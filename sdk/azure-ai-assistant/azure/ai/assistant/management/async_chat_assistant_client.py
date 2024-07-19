@@ -375,7 +375,7 @@ class AsyncChatAssistantClient(BaseChatAssistantClient):
             })
     
         for tool_call in tool_calls:
-            if tool_call['function']['name'] == 'query_database':
+            if tool_call['function']['name'] in ['query_database', 'search_documents']:
                 arguments = json.loads(tool_call['function']['arguments'])
                 arguments['tokens_remaining'] = self.assistant_config.model_conv_token_limit - self._token_count
                 tool_call['function']['arguments'] = json.dumps(arguments)
