@@ -250,6 +250,7 @@ class AsyncFileMessage:
         """
         logger.info(f"Retrieving file with file_id: {self.file_id} to path: {output_folder_name}")
         file_path = f"{output_folder_name}/{self.file_name}"
+
         if os.path.exists(file_path):
             logger.info(f"File already exists at {file_path}. Skipping download.")
             return file_path
@@ -258,9 +259,9 @@ class AsyncFileMessage:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             logger.info(f"Copying file with file_id: {self.file_id} to path: {file_path}")
 
-            async with self._ai_client.files.content(self.file_id) as response:
-                data = await response.read()
-                await asyncio.to_thread(self._write_to_file, file_path, data)
+            file = await self._ai_client.files.content(self.file_id)
+            data = file.read()
+            await asyncio.to_thread(self._write_to_file, file_path, data)
             return file_path
 
         except Exception as e:
@@ -338,7 +339,7 @@ class AsyncImageMessage:
         :return: The path of the retrieved image.
         :rtype: str
         """
-        logger.info(f"Retrieving image with file_id: {self.file_id} to path: {output_folder_name}")
+        print(f"Retrieving image with file_id: {self.file_id} to path: {output_folder_name}")
         file_path = os.path.join(output_folder_name, f"{self.file_id}.png")
 
         # Check if the file already exists
@@ -351,16 +352,16 @@ class AsyncImageMessage:
 
         try:
             # Asynchronously get the image content
-            async with self._ai_client.files.content(self.file_id) as response:
-                image_data = await response.read()
-                # Process and save the image in a separate thread
-                file_path = await asyncio.to_thread(
-                    self._save_and_resize_image, image_data, file_path
-                )
-                logger.info(f"Resized image saved to {file_path}")
+            file = await self._ai_client.files.content(self.file_id)
+            image_data = file.read()
+            # Process and save the image in a separate thread
+            file_path = await asyncio.to_thread(
+                self._save_and_resize_image, image_data, file_path
+            )
+            print(f"Resized image saved to {file_path}")
             return file_path
         except Exception as e:
-            logger.error(f"Unexpected error during image processing {self.file_id}: {e}")
+            print(str(e))
             return None
 
     @staticmethod
