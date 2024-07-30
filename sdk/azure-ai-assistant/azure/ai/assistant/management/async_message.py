@@ -339,7 +339,7 @@ class AsyncImageMessage:
         :return: The path of the retrieved image.
         :rtype: str
         """
-        print(f"Retrieving image with file_id: {self.file_id} to path: {output_folder_name}")
+        logger.info(f"Retrieving image with file_id: {self.file_id} to path: {output_folder_name}")
         file_path = os.path.join(output_folder_name, f"{self.file_id}.png")
 
         # Check if the file already exists
@@ -358,10 +358,9 @@ class AsyncImageMessage:
             file_path = await asyncio.to_thread(
                 self._save_and_resize_image, image_data, file_path
             )
-            print(f"Resized image saved to {file_path}")
+            logger.info(f"Resized image saved to {file_path}")
             return file_path
         except Exception as e:
-            print(str(e))
             return None
 
     @staticmethod
